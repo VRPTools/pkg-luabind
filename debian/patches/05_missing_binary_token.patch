@@ -1,0 +1,54 @@
+Fix #667833 - FTFBS: (...failed updating 16 targets...) using workaround found here https://svn.boost.org/trac/boost/ticket/6631
+--- luabind.git.orig/luabind/detail/call_function.hpp
++++ luabind.git/luabind/detail/call_function.hpp
+@@ -323,7 +323,8 @@
+ 
+ #endif // LUABIND_CALL_FUNCTION_HPP_INCLUDED
+ 
+-#elif BOOST_PP_ITERATION_FLAGS() == 1
++#else
++#if BOOST_PP_ITERATION_FLAGS() == 1
+ 
+ #define LUABIND_TUPLE_PARAMS(z, n, data) const A##n *
+ #define LUABIND_OPERATOR_PARAMS(z, n, data) const A##n & a##n
+@@ -440,4 +441,5 @@
+ 
+ 
+ #endif
++#endif
+ 
+--- luabind.git.orig/luabind/detail/call_member.hpp
++++ luabind.git/luabind/detail/call_member.hpp
+@@ -316,7 +316,8 @@
+ 
+ #endif // LUABIND_CALL_MEMBER_HPP_INCLUDED
+ 
+-#elif BOOST_PP_ITERATION_FLAGS() == 1
++#else
++#if BOOST_PP_ITERATION_FLAGS() == 1
+ 
+ #define LUABIND_TUPLE_PARAMS(z, n, data) const A##n *
+ #define LUABIND_OPERATOR_PARAMS(z, n, data) const A##n & a##n
+@@ -360,4 +361,5 @@
+ #undef LUABIND_TUPLE_PARAMS
+ 
+ #endif
++#endif
+ 
+--- luabind.git.orig/luabind/wrapper_base.hpp
++++ luabind.git/luabind/wrapper_base.hpp
+@@ -89,7 +89,8 @@
+ 
+ #endif // LUABIND_WRAPPER_BASE_HPP_INCLUDED
+ 
+-#elif BOOST_PP_ITERATION_FLAGS() == 1
++#else
++#if BOOST_PP_ITERATION_FLAGS() == 1
+ 
+ #define LUABIND_TUPLE_PARAMS(z, n, data) const A##n *
+ #define LUABIND_OPERATOR_PARAMS(z, n, data) const A##n & a##n
+@@ -188,3 +189,4 @@
+ #undef N
+ 
+ #endif
++#endif

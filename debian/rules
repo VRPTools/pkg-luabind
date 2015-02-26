@@ -1,0 +1,110 @@
+#!/usr/bin/make -f
+#export DH_VERBOSE=1
+
+include /usr/share/quilt/quilt.make
+
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+export DEB_HOST_MULTIARCH
+
+tests := $(filter-out main.cpp,$(subst test/,,$(wildcard test/*.cpp)))
+
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
+build-stamp: patch
+	dh_testdir
+	# The -d2 option makes bjam output the actual commands it is using
+	bjam -d2 release debug cflags=" $(shell dpkg-buildflags --get CFLAGS)" cxxflags=" $(shell dpkg-buildflags --get CXXFLAGS)" linkflags=" $(shell dpkg-buildflags --get LDFLAGS)"
+	# Create symlinks that bjam doesn't create
+	find . -name libluabindd.so.0.9.1 -execdir ln -sf libluabindd.so.0.9.1 libluabind.so.0.9.1 \;
+	find . -name libluabindd.so.0.9.1 -execdir objcopy --only-keep-debug libluabindd.so.0.9.1 libluabindd.so.0.9.1.dbg \;
+	find . -name libluabindd.so.0.9.1 -execdir rm libluabindd.so.0.9.1 \;
+	find . -name libluabindd.so.0.9.1.dbg -execdir mv libluabindd.so.0.9.1.dbg libluabindd.so.0.9.1 \;
+	find . -name libluabind.so.0.9.1 -execdir ln -sf libluabind.so.0.9.1 libluabind.so \;
+	# We also need a .a library for the -dev package
+	bjam -d2 release debug link=static cflags=" $(shell dpkg-buildflags --get CFLAGS)" cxxflags=" $(shell dpkg-buildflags --get CXXFLAGS)" linkflags=" $(shell dpkg-buildflags --get LDFLAGS)"
+	#FIXME: dh_fixperms does not recognize .hpp or .lua files
+	find . -type f -name "*.cpp" -or -name "*.hpp" -or -name "*.lua" | xargs chmod 644
+	find . -type f -name "Jamfile" -or -name "*.jam" -or -name "makefile" | xargs rm -f
+
+	# If the build arch and the target arch are the same, also run tests
+ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+	@cd test && CFLAGS="$(shell dpkg-buildflags --get CFLAGS)" CXXFLAGS="$(shell dpkg-buildflags --get CXXFLAGS)" LDFLAGS="$(shell dpkg-buildflags --get LDFLAGS)" g++ -o main.o -c main.cpp -I.. -I/usr/include/lua5.2 -I/usr/include/boost && \
+	for i in $(tests) ; \
+		do echo -n "Building $$i... " && \
+		if CFLAGS="$(shell dpkg-buildflags --get CFLAGS)" CXXFLAGS="$(shell dpkg-buildflags --get CXXFLAGS)" LDFLAGS="$(shell dpkg-buildflags --get LDFLAGS)" g++ -o test_temp $$i main.o -I.. -I/usr/include/lua5.2 -I/usr/include/boost \
+		`find .. -name libluabind.a` -llua5.2 2>test_log >/dev/null ; then \
+			if test -s test_log ; then \
+				echo "OK, warnings:" && \
+				cat test_log | sed -r 's/(.*)/  \1/g' ; \
+			else \
+				echo "OK." ; \
+			fi ; \
+			echo -n "Running  $$i... " && \
+			if ./test_temp ; then \
+				echo "OK." ; \
+			else \
+				echo "FAILED TO RUN." ; \
+			fi ; \
+		else \
+			echo "FAILED TO BUILD:" && \
+			cat test_log | sed -r 's/(.*)/  \1/g' ; \
+		fi ; \
+		echo ; rm -f test_temp test_log ; \
+	done
+endif
+
+	touch $@
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -f test/main.o
+	rm -rf bin
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+binary-indep: install
+	dh_testdir -i
+	dh_testroot -i
+	dh_installdocs -i
+	dh_installchangelogs -i -plibluabind-doc doc/changes.txt
+	dh_installexamples -i
+	dh_install -i
+	dh_link -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+binary-arch: install
+	dh_testdir -a
+	dh_testroot -a
+	dh_installchangelogs -a
+	dh_installexamples -a
+	dh_installdocs -a debian/copyright
+	dh_install -a
+	dh_link -a
+	dh_strip -a --dbg-package=libluabind-dbg
+	dh_compress -a -X.lua
+	dh_fixperms -a
+	dh_makeshlibs -a
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_md5sums -a
+	dh_builddeb -a
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

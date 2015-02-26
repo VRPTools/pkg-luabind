@@ -1,0 +1,12 @@
+Match the SONAME version
+--- luabind.orig/Jamroot
++++ luabind/Jamroot
+@@ -6,7 +6,7 @@
+ import path ;
+ import virtual-target ;
+ 
+-VERSION = 0.9.0 ;
++VERSION = 0.9.1 ;
+ BOOST_ROOT = [ os.environ BOOST_ROOT ] ;
+ 
+ rule debug-message ( txt * )

@@ -1,0 +1,4 @@
+bin/*/release/link-static/libluabind.a /usr/lib/
+bin/*/release/libluabind.so /usr/lib/
+luabind/* /usr/include/luabind/
+debian/luabind.pc /usr/lib/pkgconfig/

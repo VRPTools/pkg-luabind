@@ -1,0 +1,20 @@
+Multiarch support
+--- luabind-0.9.1+dfsg.orig/Jamroot	2011-09-14 00:15:05.000000000 +0200
++++ luabind-0.9.1+dfsg/Jamroot	2011-09-14 00:15:55.000000000 +0200
+@@ -59,6 +59,7 @@
+ {
+     LUA_PATH = [ os.environ LUA_PATH ] ;
+     HOME = [ os.environ HOME ] ;
++    MULTIARCH = [ os.environ DEB_HOST_MULTIARCH ] ;
+ 
+     local possible-prefixes =
+         $(LUA_PATH) $(HOME)/Library/Frameworks /Library/Frameworks /usr /usr/local /opt/local /opt ;
+@@ -81,7 +82,7 @@
+         prefix = $(prefix:D) ;
+     }
+ 
+-    local lib = $(prefix)/lib ;
++    local lib = $(prefix)/lib/$(MULTIARCH) ;
+ 
+     local names = liblua5.1 liblua51 liblua ;
+     local extensions = .a .so ;

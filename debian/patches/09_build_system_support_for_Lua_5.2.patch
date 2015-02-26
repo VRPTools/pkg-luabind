@@ -1,0 +1,82 @@
+Description: Build system support for Lua 5.2
+Author: Roberto C. Sanchez <roberto@connexer.com>
+--- luabind.git.orig/Jamroot
++++ luabind.git/Jamroot
+@@ -47,12 +47,12 @@
+ 
+     if [ GLOB $(LUA_PATH) : lib ]
+     {
+-        lib lua : : <link>static <name>lua5.1 <search>$(LUA_PATH)/lib/static : : <include>$(includes) ;
+-        lib lua : : <link>shared <name>lua5.1 <search>$(LUA_PATH)/lib : : <include>$(includes) ;
++        lib lua : : <link>static <name>lua5.2 <search>$(LUA_PATH)/lib/static : : <include>$(includes) ;
++        lib lua : : <link>shared <name>lua5.2 <search>$(LUA_PATH)/lib : : <include>$(includes) ;
+     }
+-    else if [ GLOB $(LUA_PATH) : lua5.1.dll ]
++    else if [ GLOB $(LUA_PATH) : lua5.2.dll ]
+     {
+-        lib lua : : <name>lua5.1 <search>$(LUA_PATH) : : <include>$(includes) ;
++        lib lua : : <name>lua5.2 <search>$(LUA_PATH) : : <include>$(includes) ;
+     }
+ }
+ else if [ os.name ] in LINUX MACOSX FREEBSD KFREEBSD
+@@ -65,7 +65,7 @@
+         $(LUA_PATH) $(HOME)/Library/Frameworks /Library/Frameworks /usr /usr/local /opt/local /opt ;
+ 
+     local possible-suffixes =
+-        include/lua5.1 include/lua51 include/lua include ;
++        include/lua5.2 include/lua52 include/lua include ;
+ 
+     local includes = [ GLOB $(possible-prefixes)/$(possible-suffixes) : lua.h ] ;
+ 
+@@ -84,10 +84,10 @@
+ 
+     local lib = $(prefix)/lib/$(MULTIARCH) ;
+ 
+-    local names = liblua5.1 liblua51 liblua ;
++    local names = liblua5.2 liblua52 liblua ;
+     local extensions = .a .so ;
+ 
+-    library = [ GLOB $(lib)/lua51 $(lib)/lua5.1 $(lib)/lua $(lib) :
++    library = [ GLOB $(lib)/lua52 $(lib)/lua5.2 $(lib)/lua $(lib) :
+         $(names)$(extensions) ] ;
+     lib-name = [ MATCH "lib(.*)" : $(library[1]:B) ] ;
+ 
+--- luabind.git.orig/examples/glut/Makefile
++++ luabind.git/examples/glut/Makefile
+@@ -6,8 +6,8 @@
+ 
+ glutbind_test: glut_bind.cpp
+ 	$(CXX) glut_bind.cpp -o glut_bind $(CPPFLAGS) \
+-	-I/usr/include/lua5.1 -I/usr/include/boost \
+-	-llua5.1 -lluabind -lGL -lGLU -lglut
++	-I/usr/include/lua5.2 -I/usr/include/boost \
++	-llua5.2 -lluabind -lGL -lGLU -lglut
+ 
+ clean:
+ 	rm -f glut_bind *.o *~
+--- luabind.git.orig/examples/hello_world/Makefile
++++ luabind.git/examples/hello_world/Makefile
+@@ -6,8 +6,8 @@
+ 
+ helloworld_test: hello_world.cpp
+ 	$(CXX) -shared hello_world.cpp -o hello_world.so $(CPPFLAGS) \
+-	-I/usr/include/lua5.1 -I/usr/include/boost \
+-	-llua5.1 -lluabind
++	-I/usr/include/lua5.2 -I/usr/include/boost \
++	-llua5.2 -lluabind
+ 
+ clean:
+ 	rm -f helloworld *.o *~
+--- luabind.git.orig/examples/regexp/Makefile
++++ luabind.git/examples/regexp/Makefile
+@@ -6,8 +6,8 @@
+ 
+ regexp_test: regex_wrap.cpp
+ 	$(CXX) regex_wrap.cpp -o regex_wrap $(CPPFLAGS) \
+-	-I/usr/include/lua5.1 -I/usr/include/boost \
+-	-llua5.1 -lluabind -lboost_regex
++	-I/usr/include/lua5.2 -I/usr/include/boost \
++	-llua5.2 -lluabind -lboost_regex
+ 
+ clean:
+ 	rm -f regex_wrap *.o *~

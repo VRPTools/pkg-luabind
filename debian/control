@@ -1,0 +1,87 @@
+Source: luabind
+Priority: optional
+Maintainer: Roberto C. Sanchez <roberto@connexer.com>
+Build-Depends: debhelper (>= 5), quilt (>= 0.40), liblua5.2-dev, libboost1.54-all-dev | libboost1.55-all-dev | libboost1.53-dev | libboost1.49-dev
+Standards-Version: 3.9.5
+Section: libs
+Homepage: http://www.rasterbar.com/products/luabind.html
+Vcs-Git: git://anonscm.debian.org/users/roberto/luabind.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=users/roberto/luabind.git;a=summary
+
+Package: libluabind0.9.1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: luabind c++ binding for lua: runtime library
+ Luabind is a library that helps you create bindings between C++ and Lua.
+ It has the ability to expose functions and classes, written in C++, to
+ Lua. It will also supply the functionality to define classes in lua and
+ let them derive from other lua classes or C++ classes. Lua classes can
+ override virtual functions from their C++ baseclasses. It is written
+ towards Lua 5.0, and does not work with other Lua versions.
+ .
+ This package contains the luabind runtime libraries, for applications that
+ have been built with luabind.
+
+Package: libluabind-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: libluabind0.9.1 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Suggests: libluabind-dev
+Description: luabind c++ binding for lua: unstripped binaries
+ Luabind is a library that helps you create bindings between C++ and Lua.
+ It has the ability to expose functions and classes, written in C++, to
+ Lua. It will also supply the functionality to define classes in lua and
+ let them derive from other lua classes or C++ classes. Lua classes can
+ override virtual functions from their C++ baseclasses. It is written
+ towards Lua 5.0, and does not work with Lua other Lua versions.
+ .
+ This package contains the luabind unstripped binaries, for debugging
+ applications developed with luabind.
+
+Package: libluabind-dev
+Section: libdevel
+Architecture: any
+Depends: libluabind0.9.1  (= ${binary:Version}), ${shlibs:Depends}, liblua5.2-dev, libboost1.53-dev | libboost-dev (>= 1.46.1-3~), ${misc:Depends}
+Suggests: libluabind-doc, libluabind-examples
+Description: luabind c++ binding for lua: static library and headers
+ Luabind is a library that helps you create bindings between C++ and Lua.
+ It has the ability to expose functions and classes, written in C++, to
+ Lua. It will also supply the functionality to define classes in lua and
+ let them derive from other lua classes or C++ classes. Lua classes can
+ override virtual functions from their C++ baseclasses. It is written
+ towards Lua 5.0, and does not work with other Lua versions.
+ .
+ This package contains all files necessary to develop applications which
+ use luabind.
+
+Package: libluabind-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: libluabind-dev
+Description: luabind c++ binding for lua: documentation files
+ Luabind is a library that helps you create bindings between C++ and Lua.
+ It has the ability to expose functions and classes, written in C++, to
+ Lua. It will also supply the functionality to define classes in lua and
+ let them derive from other lua classes or C++ classes. Lua classes can
+ override virtual functions from their C++ baseclasses. It is written
+ towards Lua 5.0, and does not work with other Lua versions.
+ .
+ This package contains the luabind documentation.
+
+Package: libluabind-examples
+Section: libdevel
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: libluabind-dev
+Description: luabind c++ binding for lua: example files
+ Luabind is a library that helps you create bindings between C++ and Lua.
+ It has the ability to expose functions and classes, written in C++, to
+ Lua. It will also supply the functionality to define classes in lua and
+ let them derive from other lua classes or C++ classes. Lua classes can
+ override virtual functions from their C++ baseclasses. It is written
+ towards Lua 5.0, and does not work with other Lua versions.
+ .
+ This package contains some luabind examples, including the basic "helloworld"
+ and some more advanced examples.

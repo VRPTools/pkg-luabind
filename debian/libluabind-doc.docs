@@ -1,0 +1,16 @@
+doc/copy.rst
+doc/dependency.rst
+doc/discard_result.rst
+doc/docs.html
+doc/docs.rst
+doc/index.html
+# The license of this file is non-free, so should not be inclued
+#doc/luabind-logo-label.ps
+doc/luabind.png
+doc/out_value.rst
+doc/pure_out_value.rst
+doc/raw.rst
+doc/return_reference_to.rst
+doc/return_stl_iterator.rst
+doc/style.css
+doc/yield.rst

@@ -1,0 +1,31 @@
+Description: fix a bug in the cast graph cache in Luabind 0.9.1
+Author: Peter Colberg <peter@colberg.org>
+--- luabind-0.9.1.orig/src/inheritance.cpp
++++ luabind-0.9.1/src/inheritance.cpp
+@@ -64,7 +64,7 @@
+       void put(
+           class_id src, class_id target, class_id dynamic_id
+         , std::ptrdiff_t object_offset
+-        , std::size_t distance, std::ptrdiff_t offset);
++        , std::ptrdiff_t offset, int distance);
+ 
+       void invalidate();
+ 
+@@ -90,7 +90,7 @@
+ 
+   void cache::put(
+       class_id src, class_id target, class_id dynamic_id
+-    , std::ptrdiff_t object_offset, std::size_t distance, std::ptrdiff_t offset)
++    , std::ptrdiff_t object_offset, std::ptrdiff_t offset, int distance)
+   {
+       m_cache.insert(std::make_pair(
+           key_type(src, target, dynamic_id, object_offset)
+@@ -175,7 +175,7 @@
+         {
+             m_cache.put(
+                 src, target, dynamic_id, object_offset
+-              , qe.distance, (char*)qe.p - (char*)p
++              , (char*)qe.p - (char*)p, qe.distance
+             );
+ 
+             return std::make_pair(qe.p, qe.distance);

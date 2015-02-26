@@ -1,0 +1,546 @@
+Description: Support for Lua 5.2
+Author: Peter Colberg <peter@colberg.org>
+--- luabind.git.orig/doc/docs.rst
++++ luabind.git/doc/docs.rst
+@@ -1116,7 +1116,7 @@
+ If you want to manipulate the object with Lua functions directly you can push
+ it onto the Lua stack by calling ``push()``.
+ 
+-The operator== will call lua_equal() on the operands and return its result.
++The operator== will call lua_compare() on the operands and return its result.
+ 
+ The ``is_valid()`` function tells you whether the object has been initialized
+ or not. When created with its default constructor, objects are invalid. To make
+@@ -1734,7 +1734,7 @@
+     {
+         try
+         {
+-            lua_state L = lua_open();
++            lua_state L = luaL_newstate();
+             /* ... */
+         }
+         catch(luabind::error& e)
+--- luabind.git.orig/examples/any_converter/any_converter.cpp
++++ luabind.git/examples/any_converter/any_converter.cpp
+@@ -69,7 +69,7 @@
+ 	register_any_converter<const char*>();
+ 	register_any_converter<std::string>();
+ 
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ #if LUA_VERSION_NUM >= 501 
+ 	luaL_openlibs(L);
+ #else
+--- luabind.git.orig/examples/cln/cln_test.cpp
++++ luabind.git/examples/cln/cln_test.cpp
+@@ -107,7 +107,7 @@
+ 
+ int main()
+ {
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	lua_baselibopen(L);
+ 	lua_mathlibopen(L);
+ 	luabind::open(L);
+--- luabind.git.orig/examples/filesystem/filesystem.cpp
++++ luabind.git/examples/filesystem/filesystem.cpp
+@@ -78,7 +78,7 @@
+ 
+ int main(int argc, const char* argv[])
+ {
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	luaopen_base(L);
+ 	luaopen_string(L);
+ 	luaopen_table(L);
+--- luabind.git.orig/examples/glut/glut_bind.cpp
++++ luabind.git/examples/glut/glut_bind.cpp
+@@ -167,7 +167,7 @@
+ 
+ int main(int argc, char* argv[])
+ {
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	lua_baselibopen(L);
+ 	lua_mathlibopen(L);
+ 	bind_glut(L);
+--- luabind.git.orig/examples/intrusive_ptr/intrusive_ptr.cpp
++++ luabind.git/examples/intrusive_ptr/intrusive_ptr.cpp
+@@ -140,7 +140,7 @@
+ 
+ int main()
+ {
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	lua_baselibopen(L);
+ 
+ 	luabind::open(L);
+--- luabind.git.orig/examples/regexp/regex_wrap.cpp
++++ luabind.git/examples/regexp/regex_wrap.cpp
+@@ -44,7 +44,7 @@
+ 
+ int main()
+ {
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	lua_baselibopen(L);
+ 	lua_strlibopen(L);
+ 	luabind::open(L);
+--- luabind.git.orig/luabind/detail/call_function.hpp
++++ luabind.git/luabind/detail/call_function.hpp
+@@ -347,8 +347,7 @@
+ 			, luabind::detail::proxy_function_void_caller<boost::tuples::tuple<BOOST_PP_ENUM(BOOST_PP_ITERATION(), LUABIND_TUPLE_PARAMS, _)> >
+ 			, luabind::detail::proxy_function_caller<Ret, boost::tuples::tuple<BOOST_PP_ENUM(BOOST_PP_ITERATION(), LUABIND_TUPLE_PARAMS, _)> > >::type proxy_type;
+ 
+-		lua_pushstring(L, name);
+-		lua_gettable(L, LUA_GLOBALSINDEX);
++		lua_getglobal(L, name);
+ 
+ 		return proxy_type(L, 1, &detail::pcall, args);
+ 	}
+@@ -390,8 +389,7 @@
+ 			, luabind::detail::proxy_function_void_caller<boost::tuples::tuple<BOOST_PP_ENUM(BOOST_PP_ITERATION(), LUABIND_TUPLE_PARAMS, _)> >
+ 			, luabind::detail::proxy_function_caller<Ret, boost::tuples::tuple<BOOST_PP_ENUM(BOOST_PP_ITERATION(), LUABIND_TUPLE_PARAMS, _)> > >::type proxy_type;
+ 
+-		lua_pushstring(L, name);
+-		lua_gettable(L, LUA_GLOBALSINDEX);
++		lua_getglobal(L, name);
+ 
+ 		return proxy_type(L, 1, &detail::resume_impl, args);
+ 	}
+--- luabind.git.orig/luabind/detail/policy.hpp
++++ luabind.git/luabind/detail/policy.hpp
+@@ -66,6 +66,10 @@
+ #include <luabind/from_stack.hpp>
+ #include <luabind/typeid.hpp>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_rawlen lua_objlen
++#endif
++
+ namespace luabind
+ {
+ 	namespace detail
+@@ -745,7 +749,7 @@
+ 
+     std::string from(lua_State* L, int index)
+     {
+-        return std::string(lua_tostring(L, index), lua_strlen(L, index));
++        return std::string(lua_tostring(L, index), lua_rawlen(L, index));
+     }
+ 
+     void to(lua_State* L, std::string const& value)
+@@ -1017,5 +1021,9 @@
+ #endif
+ }}
+ 
++#if LUA_VERSION_NUM < 502
++# undef lua_rawlen
++#endif
++
+ #endif // LUABIND_POLICY_HPP_INCLUDED
+ 
+--- luabind.git.orig/luabind/object.hpp
++++ luabind.git/luabind/object.hpp
+@@ -45,6 +45,14 @@
+ #include <boost/preprocessor/iteration/iterate.hpp>
+ #include <boost/utility/enable_if.hpp>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_compare(L, index1, index2, fn) fn(L, index1, index2)
++# define LUA_OPEQ lua_equal
++# define LUA_OPLT lua_lessthan
++# define lua_rawlen lua_objlen
++# define lua_pushglobaltable(L) lua_pushvalue(L, LUA_GLOBALSINDEX)
++#endif
++
+ namespace luabind {
+ 
+ namespace detail 
+@@ -208,11 +216,11 @@
+       detail::stack_pop pop2(L, 1); \
+       detail::push(L, rhs); \
+ \
+-      return fn(L, -1, -2) != 0; \
++      return lua_compare(L, -1, -2, fn) != 0; \
+   }
+ 
+-LUABIND_BINARY_OP_DEF(==, lua_equal)
+-LUABIND_BINARY_OP_DEF(<, lua_lessthan)
++LUABIND_BINARY_OP_DEF(==, LUA_OPEQ)
++LUABIND_BINARY_OP_DEF(<, LUA_OPLT)
+ 
+   template<class ValueWrapper>
+   std::ostream& operator<<(std::ostream& os
+@@ -225,7 +233,7 @@
+       value_wrapper_traits<ValueWrapper>::unwrap(interpreter
+         , static_cast<ValueWrapper const&>(v));
+ 		char const* p = lua_tostring(interpreter, -1);
+-        std::size_t len = lua_strlen(interpreter, -1);
++        std::size_t len = lua_rawlen(interpreter, -1);
+ 		std::copy(p, p + len, std::ostream_iterator<char>(os));
+ 		return os;
+ 	}
+@@ -523,7 +531,7 @@
+           detail::stack_pop pop(m_interpreter, 2);
+           m_key.push(m_interpreter);
+           other.m_key.push(m_interpreter);
+-          return lua_equal(m_interpreter, -2, -1) != 0;
++          return lua_compare(m_interpreter, -2, -1, LUA_OPEQ) != 0;
+       }
+ 
+       adl::iterator_proxy<AccessPolicy> dereference() const 
+@@ -1207,7 +1215,7 @@
+ // this could be optimized by returning a proxy
+ inline object globals(lua_State* interpreter)
+ {
+-    lua_pushvalue(interpreter, LUA_GLOBALSINDEX);
++    lua_pushglobaltable(interpreter);
+     detail::stack_pop pop(interpreter, 1);
+     return object(from_stack(interpreter, -1));
+ }
+@@ -1406,5 +1414,13 @@
+ 
+ } // namespace luabind
+ 
++#if LUA_VERSION_NUM < 502
++# undef lua_compare
++# undef LUA_OPEQ
++# undef LUA_OPLT
++# undef lua_rawlen
++# undef lua_pushglobaltable
++#endif
++
+ #endif // LUABIND_OBJECT_050419_HPP
+ 
+--- luabind.git.orig/src/class_rep.cpp
++++ luabind.git/src/class_rep.cpp
+@@ -31,6 +31,10 @@
+ #include <luabind/get_main_thread.hpp>
+ #include <utility>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_rawlen lua_objlen
++#endif
++
+ using namespace luabind::detail;
+ 
+ namespace luabind { namespace detail
+@@ -146,11 +150,10 @@
+         && cls->get_class_type() == class_rep::lua_class
+         && !cls->bases().empty())
+     {
+-        lua_pushstring(L, "super");
+         lua_pushvalue(L, 1);
+-        lua_pushvalue(L, -3);
++        lua_pushvalue(L, -2);
+         lua_pushcclosure(L, super_callback, 2);
+-        lua_settable(L, LUA_GLOBALSINDEX);
++        lua_setglobal(L, "super");
+     }
+ 
+     lua_pushvalue(L, -1);
+@@ -169,9 +172,8 @@
+ 
+     if (super_deprecation_disabled)
+     {
+-        lua_pushstring(L, "super");
+         lua_pushnil(L);
+-        lua_settable(L, LUA_GLOBALSINDEX);
++        lua_setglobal(L, "super");
+     }
+ 
+     return 1;
+@@ -214,17 +216,15 @@
+ 
+ 	if (base->bases().empty())
+ 	{
+-		lua_pushstring(L, "super");
+ 		lua_pushnil(L);
+-		lua_settable(L, LUA_GLOBALSINDEX);
++		lua_setglobal(L, "super");
+ 	}
+ 	else
+ 	{
+-		lua_pushstring(L, "super");
+ 		lua_pushlightuserdata(L, base);
+ 		lua_pushvalue(L, lua_upvalueindex(2));
+ 		lua_pushcclosure(L, super_callback, 2);
+-		lua_settable(L, LUA_GLOBALSINDEX);
++		lua_setglobal(L, "super");
+ 	}
+ 
+ 	base->get_table(L);
+@@ -241,9 +241,8 @@
+ 	// TODO: instead of clearing the global variable "super"
+ 	// store it temporarily in the registry. maybe we should
+ 	// have some kind of warning if the super global is used?
+-	lua_pushstring(L, "super");
+ 	lua_pushnil(L);
+-	lua_settable(L, LUA_GLOBALSINDEX);
++	lua_setglobal(L, "super");
+ 
+ 	return 0;
+ }
+@@ -292,7 +291,7 @@
+ 
+ 	const char* key = lua_tostring(L, 2);
+ 
+-	if (std::strlen(key) != lua_strlen(L, 2))
++	if (std::strlen(key) != lua_rawlen(L, 2))
+ 	{
+ 		lua_pushnil(L);
+ 		return 1;
+--- luabind.git.orig/src/create_class.cpp
++++ luabind.git/src/create_class.cpp
+@@ -26,6 +26,12 @@
+ 
+ #include <luabind/luabind.hpp>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_compare(L, index1, index2, fn) fn(L, index1, index2)
++# define LUA_OPEQ lua_equal
++# define lua_rawlen lua_objlen
++#endif
++
+ namespace luabind { namespace detail
+ {
+ 	namespace
+@@ -40,7 +46,7 @@
+ 			while (lua_next(L, -2))
+ 			{
+ 				lua_pushstring(L, "__init");
+-				if (lua_equal(L, -1, -3))
++				if (lua_compare(L, -1, -3, LUA_OPEQ))
+ 				{
+ 					lua_pop(L, 2);
+ 					continue;
+@@ -48,7 +54,7 @@
+ 				else lua_pop(L, 1); // __init string
+ 
+ 				lua_pushstring(L, "__finalize");
+-				if (lua_equal(L, -1, -3))
++				if (lua_compare(L, -1, -3, LUA_OPEQ))
+ 				{
+ 					lua_pop(L, 2);
+ 					continue;
+@@ -112,7 +118,7 @@
+ 			lua_error(L);
+ 		}
+ 
+-		if (std::strlen(lua_tostring(L, 1)) != lua_strlen(L, 1))
++		if (std::strlen(lua_tostring(L, 1)) != lua_rawlen(L, 1))
+ 		{
+ 			lua_pushstring(L, "luabind does not support class names with extra nulls");
+ 			lua_error(L);
+@@ -126,9 +132,8 @@
+ 		new(c) class_rep(L, name);
+ 
+ 		// make the class globally available
+-		lua_pushstring(L, name);
+-		lua_pushvalue(L, -2);
+-		lua_settable(L, LUA_GLOBALSINDEX);
++		lua_pushvalue(L, -1);
++		lua_setglobal(L, name);
+ 
+ 		// also add it to the closure as return value
+ 		lua_pushcclosure(L, &stage2, 1);
+--- luabind.git.orig/src/object_rep.cpp
++++ luabind.git/src/object_rep.cpp
+@@ -25,6 +25,11 @@
+ #include <luabind/detail/object_rep.hpp>
+ #include <luabind/detail/class_rep.hpp>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_getuservalue lua_getfenv
++# define lua_setuservalue lua_setfenv
++#endif
++
+ namespace luabind { namespace detail
+ {
+ 
+@@ -94,7 +99,7 @@
+ 
+       int set_instance_value(lua_State* L)
+       {
+-          lua_getfenv(L, 1);
++          lua_getuservalue(L, 1);
+           lua_pushvalue(L, 2);
+           lua_rawget(L, -2);
+ 
+@@ -129,7 +134,7 @@
+           {
+               lua_newtable(L);
+               lua_pushvalue(L, -1);
+-              lua_setfenv(L, 1);
++              lua_setuservalue(L, 1);
+               lua_pushvalue(L, 4);
+               lua_setmetatable(L, -2);
+           }
+@@ -147,7 +152,7 @@
+ 
+       int get_instance_value(lua_State* L)
+       {
+-          lua_getfenv(L, 1);
++          lua_getuservalue(L, 1);
+           lua_pushvalue(L, 2);
+           lua_rawget(L, -2);
+ 
+@@ -262,7 +267,7 @@
+         void* storage = lua_newuserdata(L, sizeof(object_rep));
+         object_rep* result = new (storage) object_rep(0, cls);
+         cls->get_table(L);
+-        lua_setfenv(L, -2);
++        lua_setuservalue(L, -2);
+         lua_rawgeti(L, LUA_REGISTRYINDEX, cls->metatable_ref());
+         lua_setmetatable(L, -2);
+         return result;
+--- luabind.git.orig/src/open.cpp
++++ luabind.git/src/open.cpp
+@@ -178,21 +178,18 @@
+         lua_settable(L, LUA_REGISTRYINDEX);
+ 
+         // add functions (class, cast etc...)
+-        lua_pushstring(L, "class");
+         lua_pushcclosure(L, detail::create_class::stage1, 0);
+-        lua_settable(L, LUA_GLOBALSINDEX);
++        lua_setglobal(L, "class");
+ 
+-        lua_pushstring(L, "property");
+         lua_pushcclosure(L, &make_property, 0);
+-        lua_settable(L, LUA_GLOBALSINDEX);
++        lua_setglobal(L, "property");
+ 
+         lua_pushlightuserdata(L, &main_thread_tag);
+         lua_pushlightuserdata(L, L);
+         lua_rawset(L, LUA_REGISTRYINDEX);
+ 
+-        lua_pushstring(L, "super");
+         lua_pushcclosure(L, &deprecated_super, 0);
+-        lua_settable(L, LUA_GLOBALSINDEX);
++        lua_setglobal(L, "super");
+     }
+ 
+ } // namespace luabind
+--- luabind.git.orig/src/pcall.cpp
++++ luabind.git/src/pcall.cpp
+@@ -47,14 +47,14 @@
+ 
+ 	int resume_impl(lua_State *L, int nargs, int)
+ 	{
+-#if LUA_VERSION_NUM >= 501
++#if LUA_VERSION_NUM >= 502
++		int res = lua_resume(L, NULL, nargs);
++#else
++		int res = lua_resume(L, nargs);
++#endif
+ 		// Lua 5.1 added  LUA_YIELD as a possible return value,
+ 		// this was causing crashes, because the caller expects 0 on success.
+-		int res = lua_resume(L, nargs);
+ 		return (res == LUA_YIELD) ? 0 : res;
+-#else
+-		return lua_resume(L, nargs);
+-#endif
+ 	}
+ 
+ }}
+--- luabind.git.orig/src/scope.cpp
++++ luabind.git/src/scope.cpp
+@@ -29,6 +29,10 @@
+ #include <luabind/detail/stack_utils.hpp>
+ #include <cassert>
+ 
++#if LUA_VERSION_NUM < 502
++# define lua_pushglobaltable(L) lua_pushvalue(L, LUA_GLOBALSINDEX)
++#endif
++
+ namespace luabind { namespace detail {
+ 
+     registration::registration()
+@@ -136,22 +140,20 @@
+     {
+         if (m_name)
+         {
+-            lua_pushstring(m_state, m_name);
+-            lua_gettable(m_state, LUA_GLOBALSINDEX);
++            lua_getglobal(m_state, m_name);
+ 
+             if (!lua_istable(m_state, -1))
+             {
+                 lua_pop(m_state, 1);
+ 
+                 lua_newtable(m_state);
+-                lua_pushstring(m_state, m_name);
+-                lua_pushvalue(m_state, -2);
+-                lua_settable(m_state, LUA_GLOBALSINDEX);
++                lua_pushvalue(m_state, -1);
++                lua_setglobal(m_state, m_name);
+             }
+         }
+         else
+         {
+-            lua_pushvalue(m_state, LUA_GLOBALSINDEX);
++            lua_pushglobaltable(m_state);
+         }
+ 
+         lua_pop_stack guard(m_state);
+--- luabind.git.orig/test/benchmark.cpp
++++ luabind.git/test/benchmark.cpp
+@@ -41,7 +41,7 @@
+ 
+ 	using namespace luabind;
+ 
+-	lua_State* L = lua_open();
++	lua_State* L = luaL_newstate();
+ 	open(L);
+ 	
+ 	class_<A>(L, "A")
+@@ -49,9 +49,8 @@
+ 
+ 	function(L, "test1", &f1);
+ 
+-	lua_pushstring(L, "test2");
+ 	lua_pushcclosure(L, &f2, 0);
+-	lua_settable(L, LUA_GLOBALSINDEX);
++	lua_setglobal(L, "test2");
+ 
+ 	std::clock_t total1 = 0;
+ 	std::clock_t total2 = 0;
+--- luabind.git.orig/test/main.cpp
++++ luabind.git/test/main.cpp
+@@ -50,7 +50,7 @@
+ };
+ 
+ lua_state::lua_state()
+-    : m_state(lua_open())
++    : m_state(luaL_newstate())
+ {
+     luaopen_base(m_state);
+ #if defined(LUA_VERSION_NUM) && LUA_VERSION_NUM >= 501
+--- luabind.git.orig/test/test_free_functions.cpp
++++ luabind.git/test/test_free_functions.cpp
+@@ -77,9 +77,8 @@
+ {
+     using namespace luabind;
+ 
+-    lua_pushstring(L, "f");
+     lua_pushcclosure(L, &function_should_never_be_called, 0);
+-    lua_settable(L, LUA_GLOBALSINDEX);
++    lua_setglobal(L, "f");
+ 
+     DOSTRING(L, "assert(f() == 10)");
+ 
+@@ -145,7 +144,12 @@
+     catch(luabind::error const& e)
+     {
+         if (std::string("[string \"function failing_fun() error('expected "
+-            "erro...\"]:1: expected error message") != lua_tostring(L, -1))
++#if LUA_VERSION_NUM >= 502
++            "error ..."
++#else
++            "erro..."
++#endif
++            "\"]:1: expected error message") != lua_tostring(L, -1))
+         {
+             TEST_ERROR("function failed with unexpected error message");
+         }

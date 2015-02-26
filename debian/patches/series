@@ -1,0 +1,10 @@
+01_Jamroot_version_bump.patch
+02_example_cleaning.patch
+03_kfreebsd_build.patch
+04_multiarch.patch
+05_missing_binary_token.patch
+06_support_building_with_clang.patch
+07_fix_luabind_cast_graph_cache_invalid_cast.patch
+08_support_for_Lua_5.2.patch
+09_build_system_support_for_Lua_5.2.patch
+10_remove_refs_to_remote_images.patch

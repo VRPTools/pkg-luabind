@@ -1,0 +1,21 @@
+Allow luabind to build on GNU/kFreeBSD
+--- luabind.orig/Jamroot
++++ luabind/Jamroot
+@@ -55,7 +55,7 @@
+         lib lua : : <name>lua5.1 <search>$(LUA_PATH) : : <include>$(includes) ;
+     }
+ }
+-else if [ os.name ] in LINUX MACOSX FREEBSD
++else if [ os.name ] in LINUX MACOSX FREEBSD KFREEBSD
+ {
+     LUA_PATH = [ os.environ LUA_PATH ] ;
+     HOME = [ os.environ HOME ] ;
+@@ -102,7 +102,7 @@
+     }
+ 
+     lib m : : <link>shared ;
+-    if [ os.name ] = LINUX
++    if [ os.name ] in LINUX KFREEBSD
+     {
+         lib dl : : <link>shared ;
+     }
