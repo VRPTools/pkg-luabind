@@ -1,3 +1,9 @@
+luabind (0.9.1+dfsg-8~ubuntu12.04.2) precise-backports; urgency=medium
+
+  * fixes Boost 1.54 as dependency
+
+ -- Daniel Kastl (Georepublic) <daniel@georepublic.de>  Thu, 26 Feb 2015 16:44:52 +0900
+
 luabind (0.9.1+dfsg-8~ubuntu12.04.1) precise-backports; urgency=medium
 
   * No-change backport to precise
